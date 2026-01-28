@@ -1,0 +1,357 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Zennbot Echo - XAUUSD</title>
+    <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;700;900&display=swap" rel="stylesheet">
+    <style>
+        /* --- RESET & BASE --- */
+        * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+        
+        body {
+            background-color: #000000;
+            color: #ffffff;
+            font-family: 'Roboto', sans-serif;
+            margin: 0;
+            padding: 10px;
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+
+        /* --- WIDGET CONTAINER (CORREGIDO) --- */
+        .tv-widget-container {
+            width: 100%;
+            max-width: 600px;
+            /* Altura aumentada para que no se corte el precio */
+            height: 126px; 
+            margin-bottom: 15px;
+            border-radius: 12px;
+            overflow: hidden;
+            /* Sin bordes para que se vea limpio */
+            border: none; 
+        }
+
+        /* --- MAIN CARD --- */
+        .calculator-card {
+            background-color: #121212;
+            width: 100%;
+            max-width: 600px;
+            border-radius: 20px;
+            border: 1px solid #333;
+            padding: 20px;
+            box-shadow: 0 4px 30px rgba(0,0,0,0.8);
+            display: flex;
+            flex-direction: column;
+            gap: 20px;
+        }
+
+        /* --- TITLES --- */
+        h1 {
+            text-align: center;
+            font-size: 1.1rem;
+            color: #38bdf8;
+            text-transform: uppercase;
+            letter-spacing: 2px;
+            margin: 0;
+            opacity: 0.8;
+        }
+
+        /* --- INPUT GROUPS --- */
+        .input-group {
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+        }
+
+        label {
+            color: #888;
+            font-size: 0.85rem;
+            font-weight: 700;
+            text-transform: uppercase;
+        }
+
+        /* --- SUPER SIZED INPUTS --- */
+        input {
+            width: 100%;
+            background-color: #1e1e1e;
+            border: 2px solid #333;
+            color: #fff;
+            font-size: 1.8rem; /* Grande y legible */
+            padding: 15px;
+            border-radius: 12px;
+            font-weight: bold;
+            outline: none;
+            transition: border-color 0.2s;
+            font-family: 'Roboto', sans-serif;
+        }
+
+        input:focus {
+            border-color: #38bdf8;
+            background-color: #252525;
+        }
+
+        /* --- ENTRY ROW LAYOUT --- */
+        .entry-row {
+            display: flex;
+            gap: 10px;
+        }
+
+        .entry-input-wrapper {
+            flex-grow: 1;
+        }
+
+        .fetch-btn {
+            background-color: #facc15;
+            color: #000;
+            border: none;
+            border-radius: 12px;
+            width: 90px;
+            font-weight: 900;
+            font-size: 0.85rem;
+            cursor: pointer;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            text-transform: uppercase;
+            line-height: 1.2;
+        }
+
+        .fetch-btn:active { transform: scale(0.95); opacity: 0.9; }
+
+        /* --- GRID SYSTEM --- */
+        .row-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 15px;
+        }
+
+        /* --- ACTION BUTTON --- */
+        .calc-btn {
+            width: 100%;
+            background: linear-gradient(90deg, #38bdf8, #2563eb);
+            color: white;
+            padding: 18px;
+            font-size: 1.3rem;
+            font-weight: 900;
+            border: none;
+            border-radius: 12px;
+            text-transform: uppercase;
+            cursor: pointer;
+            box-shadow: 0 0 25px rgba(56, 189, 248, 0.25);
+            margin-top: 10px;
+        }
+
+        .calc-btn:active { transform: translateY(2px); }
+
+        /* --- RESULTS AREA --- */
+        #results {
+            margin-top: 10px;
+            background-color: #000;
+            border-radius: 15px;
+            padding: 25px 15px;
+            border: 1px solid #333;
+            display: none;
+        }
+
+        .big-lot {
+            text-align: center;
+            font-size: 4.5rem;
+            font-weight: 900;
+            color: #38bdf8;
+            line-height: 1;
+            margin-bottom: 5px;
+            text-shadow: 0 0 30px rgba(56, 189, 248, 0.3);
+        }
+
+        .lot-subtitle {
+            text-align: center;
+            color: #666;
+            text-transform: uppercase;
+            font-size: 0.75rem;
+            margin-bottom: 20px;
+            letter-spacing: 1px;
+        }
+
+        .stats-table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+
+        .stats-table td {
+            padding: 12px 5px;
+            border-bottom: 1px solid #222;
+            font-size: 1rem;
+            color: #bbb;
+        }
+
+        .stats-table tr:last-child td { border-bottom: none; }
+
+        .text-right { text-align: right; font-weight: bold; color: #fff !important; }
+        .danger { color: #ef4444 !important; }
+        .success { color: #4ade80 !important; }
+
+        /* --- MOBILE TWEAKS --- */
+        @media (max-width: 480px) {
+            .row-grid { grid-template-columns: 1fr; } /* SL y TP uno debajo del otro en móvil */
+            .tv-widget-container { height: 126px; } /* Asegurar altura en móvil */
+            input { font-size: 1.5rem; }
+            .big-lot { font-size: 4rem; }
+        }
+
+    </style>
+</head>
+<body>
+
+    <div class="tv-widget-container">
+        <div class="tradingview-widget-container">
+            <div class="tradingview-widget-container__widget"></div>
+            <script type="text/javascript" src="https://s3.tradingview.com/external-embedding/embed-widget-single-quote.js" async>
+            {
+            "symbol": "OANDA:XAUUSD",
+            "width": "100%",
+            "height": "126", 
+            "colorTheme": "dark",
+            "isTransparent": true,
+            "locale": "en"
+            }
+            </script>
+        </div>
+    </div>
+
+    <div class="calculator-card">
+        <h1>Zennbot Echo</h1>
+
+        <div class="input-group">
+            <label>Balance ($)</label>
+            <input type="number" id="balance" value="100000">
+        </div>
+
+        <div class="input-group">
+            <label>Risk (%)</label>
+            <input type="number" id="risk" value="1.2" step="0.1">
+        </div>
+
+        <div class="input-group">
+            <label>Entry Price</label>
+            <div class="entry-row">
+                <div class="entry-input-wrapper">
+                    <input type="number" id="entry" step="0.01" placeholder="Price">
+                </div>
+                <button class="fetch-btn" onclick="fetchPrice()" id="btn-fetch">
+                    AUTO<br>FILL
+                </button>
+            </div>
+            <div id="fetch-msg" style="display:none; text-align:right; font-size:0.7rem; margin-top:5px; color:#666;">Fetching...</div>
+        </div>
+
+        <div class="row-grid">
+            <div class="input-group">
+                <label>Stop Loss</label>
+                <input type="number" id="sl" step="0.01" placeholder="SL Level">
+            </div>
+            <div class="input-group">
+                <label>Take Profit</label>
+                <input type="number" id="tp" step="0.01" placeholder="TP Level">
+            </div>
+        </div>
+
+        <button class="calc-btn" onclick="calculate()">CALCULATE LOTS</button>
+
+        <div id="results">
+            <div class="lot-subtitle">OPEN THIS POSITION SIZE</div>
+            <div class="big-lot" id="res-lots">0.00</div>
+            
+            <table class="stats-table">
+                <tr>
+                    <td>Risk</td>
+                    <td class="text-right danger" id="res-risk">-$0</td>
+                </tr>
+                <tr>
+                    <td>Profit</td>
+                    <td class="text-right success" id="res-gain">+$0</td>
+                </tr>
+                <tr>
+                    <td>SL Distance</td>
+                    <td class="text-right" id="res-dist">0.00</td>
+                </tr>
+            </table>
+        </div>
+    </div>
+
+    <script>
+        // --- AUTO FILL LOGIC (Backup API) ---
+        async function fetchPrice() {
+            const btn = document.getElementById('btn-fetch');
+            const msg = document.getElementById('fetch-msg');
+            const input = document.getElementById('entry');
+            
+            btn.innerHTML = "⏳";
+            msg.style.display = 'block';
+            msg.innerText = "Connecting...";
+
+            try {
+                // Intento 1: Binance PAXG (Estable y CORS friendly)
+                const response = await fetch('https://api.binance.com/api/v3/ticker/price?symbol=PAXGUSDT');
+                if (!response.ok) throw new Error("Blocked");
+                const data = await response.json();
+                
+                input.value = parseFloat(data.price).toFixed(2);
+                
+                msg.innerText = "Updated from Live Market";
+                msg.style.color = "#4ade80";
+                input.style.borderColor = "#facc15";
+                setTimeout(() => input.style.borderColor = "#333", 800);
+
+            } catch (error) {
+                // Fallback
+                msg.innerText = "Check Widget above";
+                msg.style.color = "#ef4444";
+            } finally {
+                btn.innerHTML = "AUTO<br>FILL";
+            }
+        }
+
+        // --- CALCULATION LOGIC (FTMO XAUUSD) ---
+        function calculate() {
+            const balance = parseFloat(document.getElementById('balance').value);
+            const risk = parseFloat(document.getElementById('risk').value);
+            const entry = parseFloat(document.getElementById('entry').value);
+            const sl = parseFloat(document.getElementById('sl').value);
+            const tp = parseFloat(document.getElementById('tp').value);
+
+            if (isNaN(balance) || isNaN(risk) || isNaN(entry) || isNaN(sl)) {
+                alert("Please fill: Balance, Risk, Entry & SL");
+                return;
+            }
+
+            // Calculation
+            const riskAmount = balance * (risk / 100);
+            const dist = Math.abs(entry - sl);
+
+            if (dist === 0) { alert("Entry and SL cannot be equal"); return; }
+
+            // FTMO Gold Formula: Risk / (Dist * 100)
+            let lots = riskAmount / (dist * 100);
+            lots = Math.floor(lots * 100) / 100; // Floor 2 decimals
+
+            // TP Calc
+            document.getElementById('results').style.display = 'block';
+            document.getElementById('res-lots').innerText = lots.toFixed(2);
+            document.getElementById('res-risk').innerText = "-$" + riskAmount.toFixed(0);
+            document.getElementById('res-dist').innerText = dist.toFixed(2);
+
+            if (!isNaN(tp) && tp > 0) {
+                const tpDist = Math.abs(entry - tp);
+                const gain = tpDist * 100 * lots;
+                document.getElementById('res-gain').innerText = "+$" + gain.toFixed(0);
+            } else {
+                document.getElementById('res-gain').innerText = "---";
+            }
+        }
+    </script>
+</body>
+</html>
